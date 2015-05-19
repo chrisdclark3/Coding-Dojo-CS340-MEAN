@@ -1,0 +1,3 @@
+- on submission of a new user to a chat, EMIT all messages to client from server
+- on submission of new message to the chat, EMIT new message to server
+- Server adds new message to all messages and BROADCASTS all messages to the users

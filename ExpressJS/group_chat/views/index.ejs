@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Index</title>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.js"></script>
+	<link rel="stylesheet" href="/dist/semantic.css">
+	<link rel="stylesheet" href="/dist/index.css">
+	<script type ="text/javascript" src="/socket.io/socket.io.js"></script>
+	<script src="/dist/semantic.js"></script>
+	<script>
+		$(document).ready(function() {
+			var socket = io.connect();
+			var room;
+			$('.special.cards .image').dimmer({ on: 'hover' });
+			$('#conversation').hide();
+
+			$('.ui.inverted.button').on('click', function() {
+				$('.fullscreen.modal').modal('show');
+				room = $(this).attr('id');
+				console.log(this);
+				socket.emit('chat_room', { room: room });
+				return false
+			});
+
+			$('#submit').on('click', function () {
+				current_user = $('#name').val();
+				socket.emit('client_new_user', {
+					name: $('#name').val(), 
+					created_at: new Date(),
+					room: room
+				});
+				$('.fullscreen.modal').modal('hide');
+				$('.ui.special.cards').toggle();
+				$('#chat_rooms').toggle();
+				$('#conversation').toggle();
+				$('#conversation h2').text(room+" Board")
+				return false;
+			});
+
+			$('#leave').on('click', function () {
+				current_user = $('#name').val();
+				socket.emit('client_remove_user', {
+					name: $('#name').val(), 
+					created_at: new Date(),
+					room: room
+				});
+				$('.fullscreen.modal').modal('hide');
+				$('.ui.special.cards').toggle();
+				$('#chat_rooms').toggle();
+				$('#conversation').toggle();
+				return false;
+			});
+
+			$(document).keypress(function(e) {
+				if (e.which == 13 && $('.modal').css('display') == 'none') {
+					socket.emit('new_message', {
+						user: current_user,
+						message: $('#message').val(),
+						created_at: new Date()
+					});
+					$('#message').val('');
+					return false;
+				} else if (e.which == 13 && $('.modal').css('display') != 'none') {
+					current_user = $('#name').val();
+					socket.emit('client_new_user', {
+						name: $('#name').val(), 
+						created_at: new Date(),
+						room: room
+					});
+					$('.fullscreen.modal').modal('hide');
+					$('.ui.special.cards').toggle();
+					$('#chat_rooms').toggle();
+					$('#conversation').toggle();
+					$('#conversation h2').text(room+" Board")
+					return false;
+				}
+			});
+
+			socket.on('all_messages', function (data) {
+				console.log(data, "DATA ON THE CLIENT SIDE\n");
+				$('.ui.feed').html("");
+				for (var i = 0; i < data.length; i++) {
+					$('.ui.feed').append(
+						"<div class='event'>"+
+						"<div class='label'><i class='pencil icon'></i></div>"+
+						"<div class='content'>"+
+						"<div class='summary'>"+data[i].user+" Wrote:"+
+						"<div class='date'>"+data[i].created_at+"</div>"+
+						"</div>"+
+						"<div class='extra text'>"+data[i].message+"</div>"+
+						"<div class='meta'>"+
+						"</div>"+
+						"</div>"+
+						"</div>"
+					);
+				}
+				return false;
+			});
+
+			socket.on('update_messages', function (data) {
+				console.log("******DATA**********", data);
+				$('.ui.feed').append(
+					"<div class='event'>"+
+					"<div class='label'><i class='pencil icon'></i></div>"+
+					"<div class='content'>"+
+					"<div class='summary'>"+data.user+" Wrote:"+
+					"<div class='date'>"+data.created_at+"</div>"+
+					"</div>"+
+					"<div class='extra text'>"+data.message+"</div>"+
+					"<div class='meta'>"+
+					"</div>"+
+					"</div>"+
+					"</div>"
+				);
+				return false;
+			});
+
+		});
+	</script>
+</head>
+<style>
+	img {
+		height: 15em !important;
+	}
+	.ui.red.button {
+		margin-top: 2em;
+		color: white !important;
+	}
+</style>
+<body>
+	<div class="container">
+		<h1 class="ui dividing header" id="chat_rooms">Chat Rooms</h1>
+		<div class="ui special cards">
+			<% include /cards %>
+		</div>
+
+		<div class="ui fullscreen modal">
+			<div class="ui form">
+		    <div class="ui info message column">
+		      <div class="header">The page at https://localhost says:</div>
+		      <ul class="list">
+		        <li>Please enter your name</li>
+		      </ul>
+		    </div>
+		    <div class="required field">
+		      <label>Your Name</label>
+		      <input placeholder="Your Name" type="text" id="name">
+		    </div>
+		    <div class="ui inverted red button">Cancel</div>
+		    <div class="ui primary button" id="submit">Submit</div>
+		  </div>
+	  </div>
+		
+		<div id="conversation">
+		<h2 class="ui dividing header">Conversation Board</h2>
+		<div class="ui feed"></div>
+		<div class="ui form" id="new_message">
+	  <div class="inline fields">
+	    <label for="message">New Message: </label>
+	    <input type="text" id="message" name="message">
+	    <div class="ui red button" id="leave">Leave Chat</div>
+	  </div>
+		</div>
+		</div>
+
+	</div>
+</body>
+</html>
